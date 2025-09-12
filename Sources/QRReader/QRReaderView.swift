@@ -98,8 +98,6 @@ extension QRReaderView: AVCaptureMetadataOutputObjectsDelegate {
             partialResult.append((str, metaObj))
         }
         
-        guard machineObjects.count > 0 else { return }
-        
         let sliceOfMachineObjects = machineObjects[...(min(machineObjects.count, maxSimultaneousReadings) - 1)]
         
         onReaderDidReadString?(Set(sliceOfMachineObjects.map { $0.string }))
