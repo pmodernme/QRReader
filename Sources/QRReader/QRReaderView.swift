@@ -25,7 +25,23 @@ public class QRReaderView: VideoPreviewView {
     }
     
     public func stop() {
-        session?.stopRunning()
+        onReaderDidReadString = nil
+
+        for timer in layerExpirationTimerByString.values {
+            timer.invalidate()
+        }
+        layerExpirationTimerByString.removeAll()
+
+        for layer in qrOverlayLayersByString.values {
+            layer.removeFromSuperlayer()
+        }
+        qrOverlayLayersByString.removeAll()
+
+        guard let session = session else { return }
+        sessionQueue.async {
+            session.stopRunning()
+        }
+        self.session = nil
     }
     
     private class MetadataObjectLayer: CAShapeLayer {
