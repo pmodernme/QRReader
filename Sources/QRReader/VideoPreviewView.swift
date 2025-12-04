@@ -44,11 +44,13 @@ public class VideoPreviewView: UIView {
         }
     }
 
-    func takeSession() -> AVCaptureSession? {
+    func takeSession(updateLayer: Bool = true) -> AVCaptureSession? {
         _sessionLock.lock()
         let captured = _session
         _session = nil
         _sessionLock.unlock()
+
+        guard updateLayer else { return captured }
 
         if Thread.isMainThread {
             videoPreviewLayer.session = nil

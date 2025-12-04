@@ -11,11 +11,11 @@ public struct QRReader: UIViewRepresentable {
     public init(scanResults: Binding<Set<String>>) {
         _scanResults = scanResults
     }
-    
+
     @Binding public var scanResults: Set<String>
-    
+
     public func updateUIView(_ view: QRReaderView, context: Context) { }
-    
+
     public func makeUIView(context: Context) -> QRReaderView {
         let view = QRReaderView()
         view.videoPreviewLayer.videoGravity = .resizeAspectFill
@@ -25,8 +25,10 @@ public struct QRReader: UIViewRepresentable {
         }
         return view
     }
-    
+
     public static func dismantleUIView(_ view: QRReaderView, coordinator: ()) {
-        view.stop()
+        // Cleanup is handled automatically by the view's willMove(toWindow:) lifecycle method
+        // when it's removed from the window hierarchy, and by deinit as a fallback.
+        // Not calling stop() here to avoid conflicts with SwiftUI's teardown process.
     }
 }

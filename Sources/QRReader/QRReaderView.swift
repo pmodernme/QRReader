@@ -12,24 +12,41 @@ import UIKit
 
 @available(iOS 10.0, *)
 public class QRReaderView: VideoPreviewView {
-    
+
     public var isCameraAuthorized: Bool { AVCaptureDevice.authorizationStatus(for: .video) == .authorized }
     public var isCameraAuthorizationDetermined: Bool { AVCaptureDevice.authorizationStatus(for: .video) != .notDetermined }
-    
+
     public var onReaderDidReadString: ((Set<String>) -> Void)?
-    
+
     public var maxSimultaneousReadings: Int = 8
-    
+
+    private var isRunning = false
+    private let stopLock = NSLock()
+
     public func start() {
+        stopLock.lock()
+        guard !isRunning else {
+            stopLock.unlock()
+            return
+        }
+        isRunning = true
+        stopLock.unlock()
         beginSession()
     }
-    
-    private let stopLock = NSLock()
 
     public func stop() {
         stopLock.lock()
-        defer { stopLock.unlock() }
+        guard isRunning else {
+            stopLock.unlock()
+            return
+        }
+        isRunning = false
+        stopLock.unlock()
 
+        performCleanup()
+    }
+
+    private func performCleanup(updateLayer: Bool = true) {
         onReaderDidReadString = nil
 
         for timer in layerExpirationTimerByString.values {
@@ -42,19 +59,41 @@ public class QRReaderView: VideoPreviewView {
         }
         qrOverlayLayersByString.removeAll()
 
-        guard let sessionToStop = takeSession() else { return }
+        guard let sessionToStop = takeSession(updateLayer: updateLayer) else { return }
         sessionQueue.async {
             sessionToStop.stopRunning()
         }
     }
-    
+
+    public override func willMove(toWindow newWindow: UIWindow?) {
+        super.willMove(toWindow: newWindow)
+
+        if newWindow == nil {
+            // View is being removed from window hierarchy - don't update layer
+            // as this happens during SwiftUI teardown
+            stopLock.lock()
+            let wasRunning = isRunning
+            isRunning = false
+            stopLock.unlock()
+
+            if wasRunning {
+                performCleanup(updateLayer: false)
+            }
+        }
+    }
+
+    deinit {
+        // Don't update layer during deinit
+        performCleanup(updateLayer: false)
+    }
+
     private class MetadataObjectLayer: CAShapeLayer {
         var metadataObject: AVMetadataObject?
     }
-    
+
     private let sessionQueue = DispatchQueue(label: "session-queue")
     private let captureOutput = AVCaptureVideoDataOutput()
-    
+
     private var qrOverlayLayersByString = [String: MetadataObjectLayer]()
     private var layerExpirationTimerByString = [String: Timer]()
     
