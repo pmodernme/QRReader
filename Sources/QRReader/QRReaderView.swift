@@ -42,10 +42,7 @@ public class QRReaderView: VideoPreviewView {
         }
         qrOverlayLayersByString.removeAll()
 
-        let sessionToStop = self.session
-        self.session = nil
-
-        guard let sessionToStop = sessionToStop else { return }
+        guard let sessionToStop = takeSession() else { return }
         sessionQueue.async {
             sessionToStop.stopRunning()
         }
