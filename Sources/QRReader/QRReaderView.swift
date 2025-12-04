@@ -24,7 +24,12 @@ public class QRReaderView: VideoPreviewView {
         beginSession()
     }
     
+    private let stopLock = NSLock()
+
     public func stop() {
+        stopLock.lock()
+        defer { stopLock.unlock() }
+
         onReaderDidReadString = nil
 
         for timer in layerExpirationTimerByString.values {
@@ -37,11 +42,13 @@ public class QRReaderView: VideoPreviewView {
         }
         qrOverlayLayersByString.removeAll()
 
-        guard let session = session else { return }
-        sessionQueue.async {
-            session.stopRunning()
-        }
+        let sessionToStop = self.session
         self.session = nil
+
+        guard let sessionToStop = sessionToStop else { return }
+        sessionQueue.async {
+            sessionToStop.stopRunning()
+        }
     }
     
     private class MetadataObjectLayer: CAShapeLayer {

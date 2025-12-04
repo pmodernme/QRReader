@@ -19,9 +19,22 @@ public class VideoPreviewView: UIView {
         return layer
     }
     
+    private var _sessionLock = NSLock()
+
     public var session: AVCaptureSession? {
-        get { videoPreviewLayer.session }
-        set { videoPreviewLayer.session = newValue }
+        get {
+            guard Thread.isMainThread else {
+                return DispatchQueue.main.sync { videoPreviewLayer.session }
+            }
+            return videoPreviewLayer.session
+        }
+        set {
+            guard Thread.isMainThread else {
+                DispatchQueue.main.sync { videoPreviewLayer.session = newValue }
+                return
+            }
+            videoPreviewLayer.session = newValue
+        }
     }
     
     public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
